@@ -16,7 +16,8 @@
     <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
     <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
     <style>
-        * {
+        /* ВСТАВЬТЕ ВСЁ CSS СТИЛИ ИЗ ПРЕДЫДУЩЕГО КОДА */
+		        * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -1969,6 +1970,7 @@
         .send-btn.recording:hover {
             background: #c82333;
         }
+        /* ... (все стили остаются без изменений) ... */
     </style>
     
     <!-- Firebase SDK -->
@@ -1978,7 +1980,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 </head>
 <body>
-    <!-- Экран входа -->
+    <!-- ВСТАВЬТЕ ВСЁ HTML ИЗ ПРЕДЫДУЩЕГО КОДА -->
+	
+	    <!-- Экран входа -->
     <div class="login-container" id="loginScreen">
         <div class="logo">🔌</div>
         <h1>Электротехническое Сообщество «Electric Group»</h1>
@@ -2225,6 +2229,8 @@
         </div>
     </div>
 
+    <!-- ... (все HTML элементы остаются без изменений) ... -->
+
     <script>
     // ========== КОНФИГУРАЦИЯ FIREBASE ==========
     const firebaseConfig = {
@@ -2335,6 +2341,7 @@
         }
         
         getDOMElements() {
+            // Получение всех DOM элементов
             this.loginScreen = document.getElementById('loginScreen');
             this.chatScreen = document.getElementById('chatScreen');
             this.googleLoginBtn = document.getElementById('googleLoginBtn');
@@ -2594,6 +2601,11 @@
                     await db.collection('onlineUsers').doc(this.user.uid).delete();
                     // Удаляем из печатающих
                     await db.collection('typingUsers').doc(this.user.uid).delete();
+                    // Обновляем статус в users
+                    await db.collection('users').doc(this.user.uid).update({
+                        isOnline: false,
+                        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                    });
                 }
                 
                 this.firstMessageSent = false;
@@ -2674,10 +2686,20 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
+                // Обновляем статус в users
+                await db.collection('users').doc(this.user.uid).update({
+                    isOnline: true,
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
                 // Обновляем статус каждые 30 секунд
-                setInterval(async () => {
+                this.onlineUpdateInterval = setInterval(async () => {
                     if (this.user) {
                         await db.collection('onlineUsers').doc(this.user.uid).update({
+                            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        
+                        await db.collection('users').doc(this.user.uid).update({
                             lastSeen: firebase.firestore.FieldValue.serverTimestamp()
                         });
                     }
@@ -2685,14 +2707,14 @@
                 
             } catch (error) {
                 console.error("❌ Ошибка добавления в онлайн:", error);
+                showStatus("Ошибка подключения к чату", "error");
             }
         }
         
-        async loadOnlineUsers() {
+        loadOnlineUsers() {
             try {
                 // Подписываемся на онлайн пользователей
                 this.unsubscribeOnline = db.collection('onlineUsers')
-                    .orderBy('timestamp', 'desc')
                     .onSnapshot((snapshot) => {
                         let onlineCount = 0;
                         const now = new Date();
@@ -3030,6 +3052,7 @@
             
             // Устанавливаем содержимое
             messageEl.innerHTML = finalContent;
+            
             
             // Добавляем действия для сообщения
             this.addMessageActions(messageEl, message, docId);
@@ -4162,3 +4185,4 @@
     </script>
 </body>
 </html>
+
