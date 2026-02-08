@@ -5939,9 +5939,340 @@ function refreshEstimate() {
         }
     }, 1500);
 }
+// ========== БАЗОВЫЙ ФУНКЦИОНАЛ ЧАТА ==========
+class SimpleChatSystem {
+    constructor() {
+        console.log('💬 Инициализация простого чата...');
+        this.user = null;
+        this.isLoggedIn = false;
+        this.messages = [];
+        
+        // Инициализация
+        this.init();
+    }
+    
+    init() {
+        this.getElements();
+        this.setupEventListeners();
+        
+        // Проверяем сохраненную авторизацию
+        this.checkSavedAuth();
+        
+        console.log('✅ Простой чат инициализирован');
+    }
+    
+    getElements() {
+        this.googleLoginBtn = document.getElementById('chatGoogleLoginBtn');
+        this.logoutBtn = document.getElementById('chatLogoutBtn');
+        this.messageInput = document.getElementById('messageInput');
+        this.sendBtn = document.getElementById('sendMessageBtn');
+        this.chatMessages = document.getElementById('chatMessages');
+        this.userName = document.getElementById('userName');
+        this.userAvatar = document.getElementById('userAvatar');
+        this.userStatus = document.getElementById('userStatus');
+        this.chatInputContainer = document.getElementById('chatInputContainer');
+        this.loginScreen = document.getElementById('chatLoginScreen');
+        this.mainScreen = document.getElementById('chatMainScreen');
+    }
+    
+    setupEventListeners() {
+        // Вход через Google (симуляция)
+        this.googleLoginBtn.addEventListener('click', () => this.simulateGoogleLogin());
+        
+        // Выход
+        this.logoutBtn.addEventListener('click', () => this.logout());
+        
+        // Отправка сообщений
+        this.sendBtn.addEventListener('click', () => this.sendMessage());
+        this.messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendMessage();
+            }
+        });
+        
+        // Регулировка высоты textarea
+        this.messageInput.addEventListener('input', () => {
+            this.adjustTextareaHeight();
+        });
+    }
+    
+    simulateGoogleLogin() {
+        console.log('🔐 Симуляция входа через Google...');
+        
+        // Создаем фейкового пользователя для демо
+        const demoUsers = [
+            { name: "Алексей Электрик", avatar: "A", color: "#2c5364" },
+            { name: "Иван Монтажник", avatar: "И", color: "#27ae60" },
+            { name: "Сергей Проектировщик", avatar: "С", color: "#e74c3c" },
+            { name: "Дмитрий Пусконаладчик", avatar: "Д", color: "#f39c12" }
+        ];
+        
+        const randomUser = demoUsers[Math.floor(Math.random() * demoUsers.length)];
+        
+        this.user = {
+            uid: 'demo_' + Date.now(),
+            displayName: randomUser.name,
+            email: 'demo@electric-group.com',
+            photoURL: null
+        };
+        
+        this.isLoggedIn = true;
+        
+        // Сохраняем в localStorage
+        localStorage.setItem('chat_user', JSON.stringify(this.user));
+        
+        // Обновляем UI
+        this.updateUserUI();
+        
+        // Показываем основное окно
+        this.loginScreen.style.display = 'none';
+        this.mainScreen.style.display = 'flex';
+        this.chatInputContainer.style.display = 'block';
+        this.logoutBtn.style.display = 'flex';
+        
+        // Добавляем приветственное сообщение
+        this.addSystemMessage(`Добро пожаловать, ${randomUser.name}! Этот чат работает в демо-режиме.`);
+        this.addSystemMessage('Для полноценной работы подключите Firebase в настройках проекта.');
+        
+        console.log('✅ Пользователь вошел (демо-режим)');
+        showNotification('✅ Вы вошли в демо-режим чата');
+    }
+    
+    updateUserUI() {
+        if (!this.user) return;
+        
+        this.userName.textContent = this.user.displayName;
+        this.userStatus.textContent = 'онлайн (демо)';
+        
+        // Обновляем аватар
+        const avatarText = this.user.displayName.charAt(0).toUpperCase();
+        this.userAvatar.innerHTML = `
+            <div style="width:100%;height:100%;background:#2c5364;color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:1.2rem;">
+                ${avatarText}
+            </div>
+        `;
+    }
+    
+    checkSavedAuth() {
+        const savedUser = localStorage.getItem('chat_user');
+        if (savedUser) {
+            try {
+                this.user = JSON.parse(savedUser);
+                this.isLoggedIn = true;
+                this.updateUserUI();
+                
+                // Показываем основной экран
+                this.loginScreen.style.display = 'none';
+                this.mainScreen.style.display = 'flex';
+                this.chatInputContainer.style.display = 'block';
+                this.logoutBtn.style.display = 'flex';
+                
+                // Добавляем сохраненные сообщения
+                this.loadDemoMessages();
+                
+                console.log('✅ Пользователь восстановлен из сохранения');
+            } catch (e) {
+                console.log('❌ Ошибка восстановления пользователя');
+            }
+        }
+    }
+    
+    logout() {
+        if (confirm('Выйти из чата?')) {
+            localStorage.removeItem('chat_user');
+            this.user = null;
+            this.isLoggedIn = false;
+            
+            // Сбрасываем UI
+            this.loginScreen.style.display = 'flex';
+            this.mainScreen.style.display = 'none';
+            this.chatMessages.innerHTML = '';
+            this.messages = [];
+            
+            console.log('✅ Пользователь вышел');
+            showNotification('Вы вышли из чата');
+        }
+    }
+    
+    sendMessage() {
+        if (!this.isLoggedIn || !this.user) {
+            showNotification('Сначала войдите в систему');
+            return;
+        }
+        
+        const text = this.messageInput.value.trim();
+        if (!text) return;
+        
+        // Создаем сообщение
+        const message = {
+            id: Date.now(),
+            text: text,
+            sender: this.user.displayName,
+            senderId: this.user.uid,
+            timestamp: new Date(),
+            type: 'text'
+        };
+        
+        // Добавляем в UI
+        this.addMessageToChat(message, true);
+        
+        // Сохраняем в историю
+        this.messages.push(message);
+        
+        // Очищаем поле ввода
+        this.messageInput.value = '';
+        this.adjustTextareaHeight();
+        
+        // Имитируем ответ через 1-3 секунды
+        setTimeout(() => {
+            this.simulateReply(text);
+        }, 1000 + Math.random() * 2000);
+        
+        // Прокручиваем вниз
+        this.scrollToBottom();
+    }
+    
+    simulateReply(userMessage) {
+        const replies = [
+            "Интересный вопрос! По моему опыту, лучше использовать ВВГнг-LS для жилых помещений.",
+            "Стоимость монтажа зависит от сложности. В среднем 500-800 руб/точка.",
+            "Для таких работ нужен кабель не менее 2.5 мм² при токе до 16А.",
+            "Рекомендую УЗО типа А для защиты от утечек переменного и постоянного тока.",
+            "В новостройках часто делают заземление через TN-C-S систему.",
+            "Стоимость щита на 36 модулей с комплектующими около 15-20 тыс.руб.",
+            "Для уличного освещения лучше брать кабель АВБбШв с броней.",
+            "ПУЭ 7.1.20 требует установку УЗО в ванных комнатах.",
+            "Автомат на ввод в квартиру обычно ставят 32А для однофазной сети.",
+            "Розетки на кухне лучше разделить на несколько линий по 16А каждая."
+        ];
+        
+        const botMessage = {
+            id: Date.now(),
+            text: replies[Math.floor(Math.random() * replies.length)],
+            sender: 'Эксперт Electric Group',
+            senderId: 'bot_expert',
+            timestamp: new Date(),
+            type: 'text'
+        };
+        
+        this.addMessageToChat(botMessage, false);
+        this.messages.push(botMessage);
+        this.scrollToBottom();
+    }
+    
+    addMessageToChat(message, isOwn) {
+        const messageElement = document.createElement('div');
+        messageElement.className = `message ${isOwn ? 'message-sent' : 'message-received'}`;
+        
+        const time = message.timestamp.toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+        
+        messageElement.innerHTML = `
+            <div class="message-bubble">
+                ${isOwn ? '' : `<div style="font-weight:bold; font-size:0.9rem; margin-bottom:3px; color:#2c5364;">${message.sender}</div>`}
+                <div style="white-space:pre-wrap;">${this.escapeHtml(message.text)}</div>
+            </div>
+            <div class="message-time">${time}</div>
+        `;
+        
+        this.chatMessages.appendChild(messageElement);
+    }
+    
+    addSystemMessage(text) {
+        const messageElement = document.createElement('div');
+        messageElement.style.cssText = `
+            text-align: center;
+            margin: 15px 0;
+            color: #666;
+            font-size: 0.9rem;
+        `;
+        messageElement.innerHTML = `
+            <div style="display:inline-block; background:#f0f2f5; padding:8px 15px; border-radius:15px; max-width:80%;">
+                <i class="fas fa-info-circle" style="margin-right:5px;"></i> ${text}
+            </div>
+        `;
+        this.chatMessages.appendChild(messageElement);
+    }
+    
+    loadDemoMessages() {
+        // Добавляем несколько демо-сообщений
+        const demoMessages = [
+            { text: "Привет! Чем могу помочь?", sender: "Эксперт Electric Group", isOwn: false },
+            { text: "Сколько стоит монтаж розетки в панельном доме?", sender: this.user.displayName, isOwn: true },
+            { text: "В панельном доме штробление бетона стоит около 600 руб/м.п. + монтаж розетки 250 руб.", sender: "Эксперт Electric Group", isOwn: false }
+        ];
+        
+        demoMessages.forEach(msg => {
+            const message = {
+                id: Date.now() + Math.random(),
+                text: msg.text,
+                sender: msg.sender,
+                senderId: msg.isOwn ? this.user.uid : 'bot_expert',
+                timestamp: new Date(Date.now() - 3600000), // 1 час назад
+                type: 'text'
+            };
+            
+            this.addMessageToChat(message, msg.isOwn);
+            this.messages.push(message);
+        });
+    }
+    
+    adjustTextareaHeight() {
+        const textarea = this.messageInput;
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px';
+    }
+    
+    scrollToBottom() {
+        const container = this.chatMessagesContainer;
+        container.scrollTop = container.scrollHeight;
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+}
 
+// ========== ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ ==========
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Ждем загрузки всех компонентов
+    setTimeout(() => {
+        // Инициализируем чат
+        window.simpleChat = new SimpleChatSystem();
+        
+        // Связываем с шторкой
+        if (window.chatCurtain) {
+            console.log('🔗 Связываем чат со шторкой...');
+            
+            // При открытии шторки показываем чат
+            window.chatCurtain.open = function() {
+                // Вызываем оригинальную функцию
+                ChatCurtain.prototype.open.call(this);
+                
+                // Фокусируемся на поле ввода если пользователь вошел
+                if (window.simpleChat && window.simpleChat.isLoggedIn) {
+                    setTimeout(() => {
+                        if (window.simpleChat.messageInput) {
+                            window.simpleChat.messageInput.focus();
+                        }
+                    }, 400);
+                }
+            };
+        }
+        
+        console.log('🚀 Чат готов к использованию!');
+        console.log('👉 Нажмите на кнопку внизу слева или Ctrl+Shift+C');
+        
+    }, 1000);
+});
     </script>
-<!-- ========== ВЫЕЗЖАЮЩАЯ ШТОРКА ЧАТА ========== -->
+<!-- ========== ВЫЕЗЖАЮЩАЯ ШТОРКА ========== -->
 <div id="chatCurtain" class="chat-curtain">
     <!-- Рукоятка для свайпа -->
     <div class="curtain-handle" id="curtainHandle">
@@ -5952,167 +6283,207 @@ function refreshEstimate() {
             <span class="unread-badge" id="curtainUnreadBadge">0</span>
         </div>
         <div class="handle-actions">
-            <button class="handle-btn" onclick="chatCurtain.minimize()">
+            <button class="handle-btn" id="minimizeChatBtn">
                 <i class="fas fa-window-minimize"></i>
             </button>
-            <button class="handle-btn" onclick="chatCurtain.close()">
+            <button class="handle-btn" id="closeChatBtn">
                 <i class="fas fa-times"></i>
             </button>
         </div>
     </div>
     
-    <!-- Содержимое чата (тот же самый контент что и раньше) -->
+    <!-- Содержимое чата -->
     <div class="curtain-content">
-        <!-- Здесь должен быть весь контент чата из предыдущей реализации -->
         <!-- Экран входа -->
         <div class="chat-login-screen" id="chatLoginScreen">
-            <!-- ... весь контент экрана входа ... -->
-        </div>
-        
-        <!-- Экран чата -->
-        <div class="chat-main-screen" id="chatMainScreen" style="display: none;">
-            <!-- ... весь контент основного экрана ... -->
-        </div>
-    </div>
-</div>
-
-<!-- Кнопка открытия шторки внизу -->
-<button id="openChatCurtainBtn" class="curtain-opener">
-    <i class="fas fa-comment-dots"></i>
-    <span class="opener-badge">0</span>
-</button>
+            <div class="chat-logo">
+                <i class="fas fa-bolt fa-3x"></i>
+            </div>
+            <h3>Чат Electric Group</h3>
+            <p style="color:#666; margin:10px 0 20px 0; max-width:300px;">
+                Общайтесь с коллегами-электриками, делитесь опытом и находите решения
+            </p>
             
-            <div class="chat-benefits">
-                <ul>
-                    <li>Личные диалоги с коллегами</li>
-                    <li>Голосовые сообщения</li>
-                    <li>Обмен файлами и схемами</li>
-                    <li>Статусы доставки</li>
+            <button class="google-login-btn" id="chatGoogleLoginBtn">
+                <i class="fab fa-google"></i> Войти через Google
+            </button>
+            
+            <div class="chat-benefits" style="margin-top:30px; text-align:left; background:#f8f9fa; padding:15px; border-radius:10px; max-width:300px;">
+                <h4 style="color:#2c5364; margin-bottom:10px;">Преимущества:</h4>
+                <ul style="list-style:none; padding:0;">
+                    <li style="padding:5px 0;"><i class="fas fa-check" style="color:#27ae60; margin-right:8px;"></i> Личные диалоги</li>
+                    <li style="padding:5px 0;"><i class="fas fa-check" style="color:#27ae60; margin-right:8px;"></i> Обмен файлами</li>
+                    <li style="padding:5px 0;"><i class="fas fa-check" style="color:#27ae60; margin-right:8px;"></i> Голосовые сообщения</li>
+                    <li style="padding:5px 0;"><i class="fas fa-check" style="color:#27ae60; margin-right:8px;"></i> Статусы онлайн</li>
                 </ul>
             </div>
         </div>
         
-        <!-- Экран чата (скрыт по умолчанию) -->
-        <div class="chat-main-screen" id="chatMainScreen" style="display: none;">
+        <!-- Основной экран чата (скрыт по умолчанию) -->
+        <div class="chat-main-screen" id="chatMainScreen" style="display:none; height:100%;">
             <!-- Шапка чата -->
-            <div class="chat-main-header">
-                <div class="user-info">
-                    <div class="user-avatar" id="chatUserAvatar"></div>
-                    <div class="user-details">
-                        <h4 id="chatUserName">Пользователь</h4>
-                        <p id="chatUserStatus">онлайн</p>
+            <div style="background:#2c5364; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div id="userAvatar" style="width:40px; height:40px; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2c5364; font-weight:bold;">
+                        ?
+                    </div>
+                    <div>
+                        <div id="userName" style="font-weight:bold;">Гость</div>
+                        <div id="userStatus" style="font-size:0.8rem; color:#b8e0ff;">Войдите в систему</div>
                     </div>
                 </div>
-                
-                <div class="chat-actions">
-                    <button class="chat-action-btn" id="newChatBtn" title="Новый чат">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="chat-action-btn" id="refreshChatBtn" title="Обновить">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                    <button class="chat-action-btn" id="chatLogoutBtn" title="Выйти">
+                <div style="display:flex; gap:8px;">
+                    <button class="chat-action-btn" id="chatLogoutBtn" title="Выйти" style="display:none;">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </div>
             </div>
             
-            <!-- Контейнер интерфейса -->
-            <div class="chat-interface">
-                <!-- Список диалогов (показывается по умолчанию) -->
-                <div class="dialogs-container" id="dialogsContainer">
-                    <div class="dialogs-header">
-                        <h3>Диалоги</h3>
-                        <div class="search-box">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="dialogSearch" placeholder="Поиск диалогов...">
-                        </div>
-                    </div>
-                    <div class="dialogs-list" id="dialogsList">
-                        <!-- Диалоги будут загружены здесь -->
+            <!-- Контейнер сообщений -->
+            <div id="chatMessagesContainer" style="flex:1; padding:15px; overflow-y:auto; background:#f0f2f5; height:calc(100% - 150px);">
+                <div id="chatMessages" style="min-height:100%;">
+                    <div style="text-align:center; padding:40px 20px; color:#666;">
+                        <i class="fas fa-comments" style="font-size:3rem; color:#ddd; margin-bottom:15px;"></i>
+                        <p>Добро пожаловать в чат Electric Group!</p>
+                        <p style="font-size:0.9rem; margin-top:10px;">Войдите через Google чтобы начать общение</p>
                     </div>
                 </div>
-                
-                <!-- Окно конкретного диалога (скрыто по умолчанию) -->
-                <div class="messages-container" id="messagesContainer" style="display: none;">
-                    <!-- Шапка диалога -->
-                    <div class="dialog-header" id="dialogHeader">
-                        <button class="back-to-dialogs" id="backToDialogs">
-                            <i class="fas fa-arrow-left"></i>
-                        </button>
-                        <div class="dialog-partner-info">
-                            <div class="partner-avatar" id="partnerAvatar"></div>
-                            <div class="partner-details">
-                                <h4 id="partnerName">Собеседник</h4>
-                                <p id="partnerStatus">статус</p>
-                            </div>
-                        </div>
-                        <div class="dialog-actions">
-                            <button class="dialog-action-btn" id="dialogInfoBtn" title="Информация">
-                                <i class="fas fa-info-circle"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Сообщения -->
-                    <div class="messages-list" id="messagesList">
-                        <!-- Сообщения будут загружены здесь -->
-                    </div>
-                    
-                    <!-- Поле ввода -->
-                    <div class="message-input-area">
-                        <button class="input-action-btn" id="attachBtn" title="Вложения">
-                            <i class="fas fa-paperclip"></i>
-                        </button>
-                        
-                        <div class="input-wrapper">
-                            <textarea 
-                                id="chatMessageInput" 
-                                placeholder="Введите сообщение..." 
-                                rows="1"
-                                maxlength="2000"></textarea>
-                            
-                            <div class="input-actions">
-                                <button class="emoji-btn" id="chatEmojiBtn" title="Смайлики">
-                                    <i class="fas fa-smile"></i>
-                                </button>
-                                <button class="audio-btn" id="chatAudioBtn" title="Запись голоса">
-                                    <i class="fas fa-microphone"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <button class="send-btn" id="chatSendBtn" title="Отправить">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Окно нового диалога (скрыто) -->
-                <div class="new-chat-container" id="newChatContainer" style="display: none;">
-                    <div class="new-chat-header">
-                        <button class="back-to-dialogs" id="backFromNewChat">
-                            <i class="fas fa-arrow-left"></i>
-                        </button>
-                        <h3>Новый диалог</h3>
-                    </div>
-                    
-                    <div class="search-box users-search">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="userSearch" placeholder="Поиск пользователей...">
-                    </div>
-                    
-                    <div class="users-list" id="usersList">
-                        <!-- Список пользователей будет здесь -->
-                    </div>
+            </div>
+            
+            <!-- Поле ввода (изначально скрыто) -->
+            <div id="chatInputContainer" style="display:none; padding:10px 15px; border-top:1px solid #ddd; background:white;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <textarea id="messageInput" 
+                              placeholder="Введите сообщение..." 
+                              style="flex:1; padding:10px 15px; border:1px solid #ddd; border-radius:20px; resize:none; min-height:40px; max-height:100px; font-family:inherit;"></textarea>
+                    <button id="sendMessageBtn" style="background:#2c5364; color:white; border:none; width:40px; height:40px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Кнопка открытия шторки -->
+<button id="openChatCurtainBtn" class="curtain-opener">
+    <i class="fas fa-comment-dots"></i>
+    <span class="opener-badge">0</span>
+</button>
+
 <!-- Стили для чата -->
 <style>
+	/* Стили для элементов внутри шторки */
+.google-login-btn {
+    background: #4285F4;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 30px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s;
+    width: 100%;
+    max-width: 250px;
+    margin: 20px 0;
+}
+
+.google-login-btn:hover {
+    background: #3367D6;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(66, 133, 244, 0.3);
+}
+
+.chat-action-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.chat-action-btn:hover {
+    background: rgba(255,255,255,0.2);
+    transform: scale(1.1);
+}
+
+/* Сообщения в чате */
+.message {
+    margin-bottom: 15px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-sent {
+    text-align: right;
+}
+
+.message-received {
+    text-align: left;
+}
+
+.message-bubble {
+    display: inline-block;
+    padding: 10px 15px;
+    border-radius: 18px;
+    max-width: 70%;
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+.message-sent .message-bubble {
+    background: #2c5364;
+    color: white;
+    border-bottom-right-radius: 5px;
+}
+
+.message-received .message-bubble {
+    background: white;
+    color: #333;
+    border: 1px solid #e9ecef;
+    border-bottom-left-radius: 5px;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 4px;
+    padding: 0 5px;
+}
+
+/* Скроллбар для сообщений */
+#chatMessagesContainer::-webkit-scrollbar {
+    width: 6px;
+}
+
+#chatMessagesContainer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#chatMessagesContainer::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+#chatMessagesContainer::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
 /* ========== ПЛАВАЮЩИЙ ЧАТ ========== */
 #floatingChatContainer {
     position: fixed;
@@ -8425,6 +8796,7 @@ function escapeHtml(text) {
 </button>
 </body>
 </html>
+
 
 
 
