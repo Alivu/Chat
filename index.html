@@ -1861,17 +1861,18 @@
     justify-content: center;
     font-size: 24px;
     z-index: 10001;
+    transition: all 0.3s ease;
 ">
     <i class="fas fa-comments"></i>
 </button>
 
-<!-- Шторка с чатом -->
+<!-- Шторка с чатом - СДЕЛАНА ВЫШЕ -->
 <div id="simpleChatPanel" style="
     position: fixed;
     bottom: 90px;
     left: 20px;
-    width: 350px;
-    height: 500px;
+    width: 450px;
+    height: 600px;
     background: white;
     border-radius: 15px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
@@ -1879,6 +1880,8 @@
     flex-direction: column;
     z-index: 10000;
     border: 1px solid #e0e0e0;
+    overflow: hidden;
+    max-height: 80vh;
 ">
     <div style="
         background: linear-gradient(135deg, #2c3e50, #34495e);
@@ -1888,10 +1891,14 @@
         justify-content: space-between;
         align-items: center;
         border-radius: 15px 15px 0 0;
+        flex-shrink: 0;
     ">
-        <h3 style="margin: 0; font-size: 1rem;">
+        <h3 style="margin: 0; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
             <i class="fas fa-comment-dots"></i>
             Electric_Group Чат
+            <span style="font-size: 0.8rem; opacity: 0.8;">
+                <i class="fas fa-circle" style="color: #2ecc71;"></i> онлайн
+            </span>
         </h3>
         <button id="closeChatButton" style="
             background: none;
@@ -1904,18 +1911,27 @@
             <i class="fas fa-times"></i>
         </button>
     </div>
-    <iframe 
-        src="https://alivu.github.io/Electric_Group/" 
-        style="
-            flex: 1;
-            border: none;
-            width: 100%;
-            height: 100%;
-            border-radius: 0 0 15px 15px;
-        "
-        allow="camera; microphone"
-        title="Чат Electric_Group"
-    ></iframe>
+    
+    <!-- Контейнер для iframe с возможностью скролла -->
+    <div style="
+        flex: 1;
+        overflow: hidden;
+        border-radius: 0 0 15px 15px;
+    ">
+        <iframe 
+            src="https://alivu.github.io/Electric_Group/" 
+            style="
+                width: 100%;
+                height: 100%;
+                border: none;
+                display: block;
+            "
+            allow="camera; microphone"
+            title="Чат Electric_Group"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
+            scrolling="yes"
+        ></iframe>
+    </div>
 </div>
 
 <!-- Затемнение фона -->
@@ -5833,7 +5849,8 @@ class ChatWidget {
 }
 
 
-// ========== ПРОСТОЙ ЧАТ ВИДЖЕТ ==========
+// Замените текущий код чата на этот:
+// ========== УЛУЧШЕННЫЙ ЧАТ ВИДЖЕТ ==========
 let isChatOpen = false;
 
 function toggleChat() {
@@ -5848,6 +5865,12 @@ function toggleChat() {
         overlay.style.display = 'block';
         chatButton.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
         chatButton.innerHTML = '<i class="fas fa-times"></i>';
+        
+        // Даем время на анимацию, затем обновляем iframe
+        setTimeout(() => {
+            refreshChatIframe();
+            focusChatInput();
+        }, 300);
     } else {
         chatPanel.style.display = 'none';
         overlay.style.display = 'none';
@@ -5856,11 +5879,37 @@ function toggleChat() {
     }
 }
 
+function refreshChatIframe() {
+    const iframe = document.querySelector('#simpleChatPanel iframe');
+    if (iframe) {
+        // Добавляем параметр для предотвращения кэширования
+        iframe.src = iframe.src.split('?')[0] + '?t=' + Date.now();
+    }
+}
+
+function focusChatInput() {
+    // Пытаемся сфокусироваться на поле ввода в iframe
+    setTimeout(() => {
+        const iframe = document.querySelector('#simpleChatPanel iframe');
+        if (iframe && iframe.contentWindow) {
+            try {
+                // Отправляем сообщение в iframe для фокуса
+                iframe.contentWindow.postMessage({ 
+                    action: 'focusInput' 
+                }, '*');
+            } catch (e) {
+                console.log('Не удалось сфокусироваться на поле ввода');
+            }
+        }
+    }, 1000);
+}
+
 // Назначаем обработчики событий
 document.addEventListener('DOMContentLoaded', function() {
     const chatButton = document.getElementById('simpleChatButton');
     const closeButton = document.getElementById('closeChatButton');
     const overlay = document.getElementById('chatOverlay');
+    const chatPanel = document.getElementById('simpleChatPanel');
     
     if (chatButton) {
         chatButton.addEventListener('click', toggleChat);
@@ -5874,6 +5923,18 @@ document.addEventListener('DOMContentLoaded', function() {
         overlay.addEventListener('click', toggleChat);
     }
     
+    // Слушаем сообщения из iframe
+    window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'chatHeight') {
+            // Автоматически подстраиваем высоту под контент чата
+            const iframe = document.querySelector('#simpleChatPanel iframe');
+            if (iframe && event.data.height) {
+                iframe.style.height = event.data.height + 'px';
+                chatPanel.style.height = (event.data.height + 60) + 'px'; // + высота заголовка
+            }
+        }
+    });
+    
     // Закрытие по Escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && isChatOpen) {
@@ -5881,29 +5942,64 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    console.log('✅ Кнопка чата готова');
+    console.log('✅ Улучшенный чат готов');
 });
 
-// Для мобильных адаптируем размер
-window.addEventListener('resize', function() {
+// Адаптация для мобильных
+function adaptChatForMobile() {
     const chatPanel = document.getElementById('simpleChatPanel');
-    if (chatPanel && isChatOpen) {
-        if (window.innerWidth <= 767) {
-            chatPanel.style.width = 'calc(100vw - 30px)';
-            chatPanel.style.maxWidth = '400px';
-            chatPanel.style.left = '15px';
-            chatPanel.style.bottom = '140px';
-        } else {
-            chatPanel.style.width = '350px';
-            chatPanel.style.left = '20px';
-            chatPanel.style.bottom = '90px';
+    const chatButton = document.getElementById('simpleChatButton');
+    
+    if (!chatPanel || !chatButton) return;
+    
+    if (window.innerWidth <= 767) {
+        // Мобильный режим
+        chatPanel.style.width = '95vw';
+        chatPanel.style.left = '2.5vw';
+        chatPanel.style.right = '2.5vw';
+        chatPanel.style.bottom = '120px';
+        chatPanel.style.height = '70vh'; // 70% высоты экрана
+        chatPanel.style.maxHeight = '600px';
+        
+        chatButton.style.left = '15px';
+        chatButton.style.bottom = '80px';
+        
+        // Обновляем iframe для мобильных
+        const iframe = chatPanel.querySelector('iframe');
+        if (iframe) {
+            iframe.style.height = 'calc(100% - 60px)';
         }
+    } else {
+        // Десктопный режим
+        chatPanel.style.width = '450px'; // Шире для лучшего отображения
+        chatPanel.style.left = '20px';
+        chatPanel.style.right = 'auto';
+        chatPanel.style.bottom = '90px';
+        chatPanel.style.height = '600px'; // Выше чем было
+        chatPanel.style.maxHeight = '80vh';
+        
+        chatButton.style.left = '20px';
+        chatButton.style.bottom = '20px';
+    }
+}
+
+// Инициализация при загрузке и ресайзе
+window.addEventListener('load', function() {
+    adaptChatForMobile();
+    
+    // Добавляем скролл в iframe если нужно
+    const iframe = document.querySelector('#simpleChatPanel iframe');
+    if (iframe) {
+        iframe.style.overflowY = 'auto';
+        iframe.style.overflowX = 'hidden';
     }
 });
 
+window.addEventListener('resize', adaptChatForMobile);
 		
     </script>
 </body>
 </html>
+
 
 
