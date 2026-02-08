@@ -18,7 +18,11 @@
 <!-- /Yandex.Metrika counter -->
 
 
-
+<!-- Добавьте эти строки в секцию <head> -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
 	
 <meta charset="UTF-8">
@@ -7066,7 +7070,7 @@ class PersonalChatSystem {
     constructor() {
         console.log('🔧 Инициализация системы личных диалогов...');
         
-        // Конфигурация Firebase (используем существующую)
+        // Правильная конфигурация Firebase
         this.firebaseConfig = {
             apiKey: "AIzaSyCRJh0fFbJAc6dFz1O21SbjyAaPbMV58xc",
             authDomain: "electrician-chat.firebaseapp.com",
@@ -7076,25 +7080,8 @@ class PersonalChatSystem {
             appId: "1:1005885507362:web:c030a98505761b0add877b"
         };
         
-        // Инициализация Firebase
-        this.initializeFirebase();
-        
-        // Глобальные переменные
-        this.user = null;
-        this.currentChatId = null;
-        this.currentPartner = null;
-        
-        // Подписки
-        this.unsubscribeChats = null;
-        this.unsubscribeMessages = null;
-        this.unsubscribeUsers = null;
-        this.unsubscribeOnline = null;
-        
-        // Состояние интерфейса
-        this.isChatOpen = false;
-        this.isMinimized = false;
-        
         // Инициализация
+        this.initializeFirebase();
         this.init();
     }
     
@@ -7103,15 +7090,18 @@ class PersonalChatSystem {
             // Проверяем, инициализирован ли Firebase
             if (!firebase.apps.length) {
                 firebase.initializeApp(this.firebaseConfig);
+                console.log('✅ Firebase успешно инициализирован');
+            } else {
+                console.log('✅ Firebase уже инициализирован');
             }
             
             this.auth = firebase.auth();
             this.db = firebase.firestore();
             this.storage = firebase.storage();
             
-            console.log('✅ Firebase инициализирован для личных диалогов');
         } catch (error) {
             console.error('❌ Ошибка инициализации Firebase:', error);
+            this.showNotification('Ошибка подключения к чату', 'error');
         }
     }
     
@@ -8378,8 +8368,63 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }	
-	
+	<!-- ========== ПЛАВАЮЩИЙ ЧАТ ========== -->
+<div id="floatingChatContainer" class="chat-container">
+    <div class="chat-header-handle" id="chatHandle">
+        <div class="handle-indicator"></div>
+        <div class="handle-title">
+            <i class="fas fa-comments"></i>
+            Чат Electric Group
+            <span class="unread-badge" id="unreadBadge">0</span>
+        </div>
+        <div class="handle-actions">
+            <button class="handle-btn" id="minimizeChat">
+                <i class="fas fa-window-minimize"></i>
+            </button>
+            <button class="handle-btn" id="closeChat">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="chat-wrapper" id="chatWrapper">
+        <!-- Экран входа -->
+        <div class="chat-login-screen" id="chatLoginScreen">
+            <div class="chat-logo">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <h3>Чат Electric Group</h3>
+            <p>Общайтесь с коллегами-электриками, делитесь опытом и находите решения</p>
+            
+            <button class="google-login-btn" id="chatGoogleLogin">
+                <i class="fab fa-google"></i>
+                Войти через Google
+            </button>
+            
+            <div class="chat-benefits">
+                <ul>
+                    <li>Личные диалоги с коллегами</li>
+                    <li>Голосовые сообщения</li>
+                    <li>Обмен файлами и схемами</li>
+                    <li>Статусы доставки</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Основной экран чата -->
+        <div class="chat-main-screen" id="chatMainScreen" style="display: none;">
+            <!-- ... остальное содержимое чата ... -->
+        </div>
+    </div>
+</div>
+
+<!-- Кнопка открытия чата -->
+<button id="openChatBtn" class="floating-chat-btn">
+    <i class="fas fa-comments"></i>
+    <span class="chat-notification-badge">0</span>
+</button>
 </body>
 </html>
+
 
 
