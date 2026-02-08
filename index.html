@@ -5494,6 +5494,7 @@ document.addEventListener('DOMContentLoaded', function() {
     checkSavedToken();
 	    // Инициализация линзы
     initMagnifier();
+	initChatCurtain();
 });
 class Magnifier {
     constructor() {
@@ -6537,36 +6538,113 @@ class ChatCurtain {
 }
 
 // Инициализация шторки чата
+// ========== ШТОРКА ЧАТА ==========
+let chatCurtain = null;
+
 function initChatCurtain() {
-    setTimeout(() => {
-        try {
-            const chatCurtain = new ChatCurtain();
-            window.chatCurtain = chatCurtain;
-            console.log('✅ Шторка чата готова к работе');
-        } catch (error) {
-            console.error('❌ Ошибка инициализации шторки чата:', error);
+    try {
+        // Создаем шторку
+        const curtain = document.getElementById('chatCurtain');
+        const openBtn = document.getElementById('openChatCurtainBtn');
+        const handle = document.getElementById('curtainHandle');
+        const closeBtn = document.getElementById('closeChatBtn');
+        const minimizeBtn = document.getElementById('minimizeChatBtn');
+        
+        if (!curtain || !openBtn) {
+            console.log('Элементы шторки не найдены');
+            return;
         }
-    }, 1000);
+        
+        // Проверяем сохраненное состояние
+        const savedState = localStorage.getItem('chatCurtainState');
+        
+        // Назначаем обработчики
+        openBtn.addEventListener('click', toggleChatCurtain);
+        handle.addEventListener('click', toggleChatCurtain);
+        
+        closeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            closeChatCurtain();
+        });
+        
+        minimizeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleMinimizeChat();
+        });
+        
+        // Восстанавливаем состояние
+        if (savedState === 'open') {
+            openChatCurtain();
+        } else if (savedState === 'minimized') {
+            minimizeChat();
+        }
+        
+        console.log('✅ Шторка чата инициализирована');
+        
+    } catch (error) {
+        console.error('❌ Ошибка инициализации шторки:', error);
+    }
 }
 
-// В функции initializeApp добавьте в конец:
-async function initializeApp() {
-    console.log('Инициализация приложения');
-    
-    initializeEstimateData();
-    renderPriceList();
-    renderEstimateTable();
-    updateTotals();
-    updateEstimateCounter();
-    setupEventListeners();
-    setupDate();
-    await initializeIslamicFeatures();
-    initMagnifier(); // ← УЖЕ ЕСТЬ
-    initChatCurtain(); // ← ДОБАВЬТЕ ЭТУ СТРОКУ
-    showTab('price');
-    
-    console.log('Приложение инициализировано');
+function toggleChatCurtain() {
+    const curtain = document.getElementById('chatCurtain');
+    if (curtain.classList.contains('open')) {
+        closeChatCurtain();
+    } else {
+        openChatCurtain();
+    }
 }
+
+function openChatCurtain() {
+    const curtain = document.getElementById('chatCurtain');
+    const openBtn = document.getElementById('openChatCurtainBtn');
+    
+    curtain.classList.add('open');
+    openBtn.classList.add('hidden');
+    localStorage.setItem('chatCurtainState', 'open');
+    showNotification('💬 Чат Electric Group открыт');
+}
+
+function closeChatCurtain() {
+    const curtain = document.getElementById('chatCurtain');
+    const openBtn = document.getElementById('openChatCurtainBtn');
+    
+    curtain.classList.remove('open');
+    openBtn.classList.remove('hidden');
+    localStorage.setItem('chatCurtainState', 'closed');
+}
+
+function toggleMinimizeChat() {
+    const curtain = document.getElementById('chatCurtain');
+    const chatIframe = document.getElementById('chatIframe');
+    
+    if (curtain.style.height === '60px') {
+        restoreChat();
+    } else {
+        minimizeChat();
+    }
+}
+
+function minimizeChat() {
+    const curtain = document.getElementById('chatCurtain');
+    const chatIframe = document.getElementById('chatIframe');
+    
+    curtain.style.height = '60px';
+    if (chatIframe) chatIframe.style.display = 'none';
+    localStorage.setItem('chatCurtainState', 'minimized');
+}
+
+function restoreChat() {
+    const curtain = document.getElementById('chatCurtain');
+    const chatIframe = document.getElementById('chatIframe');
+    
+    curtain.style.height = '100vh';
+    if (chatIframe) chatIframe.style.display = 'block';
+    localStorage.setItem('chatCurtainState', 'open');
+}
+
+// Инициализируем шторку при загрузке
+setTimeout(initChatCurtain, 1000);
 		
     </script>
 <!-- ========== ВЫЕЗЖАЮЩАЯ ШТОРКА ========== -->
@@ -9104,8 +9182,7 @@ function escapeHtml(text) {
 </button>
 
 
-// ========== ДОБАВЬТЕ В КОНЕЦ <body> ПЕРЕД </body> ==========
-
+// ========== ДОБАВЬТЕ В КОНЕЦ <body> ПЕРЕД==========
 <!-- Шторка с чатом -->
 <div id="chatCurtain" class="chat-curtain">
     <div class="curtain-handle" id="curtainHandle">
@@ -9139,9 +9216,9 @@ function escapeHtml(text) {
 <button id="openChatCurtainBtn" class="curtain-opener">
     <i class="fas fa-comment-dots"></i>
 </button>
-
 </body>
 </html>
+
 
 
 
