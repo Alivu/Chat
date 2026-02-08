@@ -1919,19 +1919,22 @@
         border-radius: 0 0 15px 15px;
     ">
 <!-- Измените src у iframe на этот: -->
-<iframe 
-    src="https://alivu.github.io/Electric_Group/#top" 
-    style="
-        width: 100%;
-        height: 100%;
-        border: none;
-        display: block;
-    "
-    allow="camera; microphone"
-    title="Чат Electric_Group"
-    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
-    scrolling="yes"
-></iframe>
+    <iframe 
+        id="chatIframe"
+        src="https://alivu.github.io/Electric_Group/" 
+        style="
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+            border-radius: 15px;
+        "
+        allow="camera; microphone"
+        title="Чат Electric_Group"
+        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation"
+        scrolling="yes"
+        loading="lazy"
+    ></iframe>
     </div>
 </div>
 
@@ -6258,6 +6261,7 @@ if (document.readyState === 'loading') {
     </script>
 </body>
 </html>
+
 
 
 
