@@ -215,6 +215,182 @@
             }
         }
 
+
+
+
+/* ========== КНОПКА И ШТОРКА ЧАТА ========== */
+.chat-widget {
+    position: fixed;
+    z-index: 99999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Кнопка открытия чата */
+.chat-toggle {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    transition: all 0.3s ease;
+    z-index: 10001;
+}
+
+.chat-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.chat-toggle.active {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    transform: rotate(45deg);
+}
+
+/* Контейнер чата (шторка) */
+.chat-container {
+    position: fixed;
+    bottom: 90px;
+    left: 20px;
+    width: 350px;
+    height: 500px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    overflow: hidden;
+    display: none;
+    flex-direction: column;
+    z-index: 10000;
+    border: 1px solid #e0e0e0;
+}
+
+.chat-container.active {
+    display: flex;
+    animation: slideInUp 0.3s ease-out;
+}
+
+/* Заголовок чата */
+.chat-header {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+}
+
+/* iframe с чатом */
+.chat-frame {
+    flex: 1;
+    border: none;
+    width: 100%;
+    height: 100%;
+    background: white;
+}
+
+/* Индикатор состояния */
+.chat-status {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.chat-status.online {
+    color: #2ecc71;
+}
+
+/* Анимации */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 767px) {
+    .chat-toggle {
+        bottom: 80px;
+        left: 15px;
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+    
+    .chat-container {
+        bottom: 140px;
+        left: 15px;
+        width: calc(100vw - 30px);
+        height: 400px;
+        max-width: 400px;
+    }
+}
+
+@media (max-width: 480px) {
+    .chat-container {
+        height: 350px;
+        bottom: 120px;
+    }
+}
+
+/* Затемнение фона при открытом чате */
+.chat-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 9999;
+    display: none;
+}
+
+.chat-overlay.active {
+    display: block;
+}
+
+
+
+
+/* ========== КНОПКА И ШТОРКА ЧАТА КОНЕЦ========== */
+
+
+
+
+
+		
         .price-header h2 {
             font-size: 0.9rem;
             display: flex;
@@ -1662,6 +1838,54 @@
         </div>
     </div>
 
+
+
+
+
+
+
+
+<!-- Виджет чата -->
+<div class="chat-widget">
+    <!-- Кнопка открытия чата -->
+    <button class="chat-toggle" id="chatToggle" title="Открыть чат Electric_Group">
+        <i class="fas fa-comments"></i>
+    </button>
+    
+    <!-- Шторка с чатом -->
+    <div class="chat-container" id="chatContainer">
+        <div class="chat-header">
+            <h3>
+                <i class="fas fa-comment-dots"></i>
+                Electric_Group Чат
+                <span class="chat-status online">
+                    <i class="fas fa-circle"></i> онлайн
+                </span>
+            </h3>
+            <button class="chat-close" id="chatClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <iframe 
+            src="https://alivu.github.io/Electric_Group/" 
+            class="chat-frame"
+            id="chatIframe"
+            allow="camera; microphone"
+            title="Чат Electric_Group"
+        ></iframe>
+    </div>
+    
+    <!-- Затемнение фона -->
+    <div class="chat-overlay" id="chatOverlay"></div>
+</div>
+
+
+
+
+
+
+
+	
     <script>
 // ========== ЗАГРУЗКА ВЕРСИИ ИЗ SW.js ==========
 let APP_VERSION = '1.0.0'; // значение по умолчанию
@@ -2975,7 +3199,7 @@ async function initializeApp() { // ← ДОБАВЬТЕ async
     setupDate();
     await initializeIslamicFeatures(); // ← ДОБАВЬТЕ await
     showTab('price');
-    
+    initChatWidget(); // ← ДОБАВЬТЕ ЭТУ СТРОКУ
     console.log('Приложение инициализировано');
 }
 
@@ -5359,7 +5583,242 @@ function refreshEstimate() {
         }
     }, 1500);
 }
+
+
+
+
+
+// ========== ВИДЖЕТ ЧАТА ==========
+
+class ChatWidget {
+    constructor() {
+        this.isOpen = false;
+        this.init();
+    }
+    
+    init() {
+        // Создаем элементы если их нет
+        this.createElements();
+        
+        // Назначаем обработчики
+        this.setupEventListeners();
+        
+        // Проверяем состояние чата
+        this.checkChatState();
+        
+        console.log('✅ Чат инициализирован');
+    }
+    
+    createElements() {
+        // Проверяем, есть ли уже элементы чата
+        if (document.getElementById('chatToggle')) return;
+        
+        const chatHTML = `
+            <div class="chat-widget">
+                <button class="chat-toggle" id="chatToggle" title="Открыть чат Electric_Group">
+                    <i class="fas fa-comments"></i>
+                </button>
+                
+                <div class="chat-container" id="chatContainer">
+                    <div class="chat-header">
+                        <h3>
+                            <i class="fas fa-comment-dots"></i>
+                            Electric_Group Чат
+                            <span class="chat-status online" id="chatStatus">
+                                <i class="fas fa-circle"></i> онлайн
+                            </span>
+                        </h3>
+                        <button class="chat-close" id="chatClose">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <iframe 
+                        src="https://alivu.github.io/Electric_Group/" 
+                        class="chat-frame"
+                        id="chatIframe"
+                        allow="camera; microphone"
+                        title="Чат Electric_Group"
+                    ></iframe>
+                </div>
+                
+                <div class="chat-overlay" id="chatOverlay"></div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', chatHTML);
+    }
+    
+    setupEventListeners() {
+        // Открытие/закрытие по кнопке
+        document.getElementById('chatToggle').addEventListener('click', () => this.toggle());
+        
+        // Закрытие по кнопке X
+        document.getElementById('chatClose').addEventListener('click', () => this.close());
+        
+        // Закрытие по клику на оверлей
+        document.getElementById('chatOverlay').addEventListener('click', () => this.close());
+        
+        // Закрытие по Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isOpen) {
+                this.close();
+            }
+        });
+        
+        // Обновление iframe при изменении размера
+        window.addEventListener('resize', () => this.handleResize());
+        
+        // Отслеживание загрузки iframe
+        const iframe = document.getElementById('chatIframe');
+        if (iframe) {
+            iframe.addEventListener('load', () => {
+                this.updateStatus(true);
+                console.log('Чат загружен');
+            });
+            
+            iframe.addEventListener('error', () => {
+                this.updateStatus(false);
+                console.warn('Ошибка загрузки чата');
+            });
+        }
+    }
+    
+    toggle() {
+        this.isOpen ? this.close() : this.open();
+    }
+    
+    open() {
+        if (this.isOpen) return;
+        
+        this.isOpen = true;
+        document.getElementById('chatContainer').classList.add('active');
+        document.getElementById('chatOverlay').classList.add('active');
+        document.getElementById('chatToggle').classList.add('active');
+        
+        // Показываем уведомление
+        showNotification('Чат Electric_Group открыт');
+        
+        // Обновляем iframe
+        this.refreshIframe();
+    }
+    
+    close() {
+        if (!this.isOpen) return;
+        
+        this.isOpen = false;
+        document.getElementById('chatContainer').classList.remove('active');
+        document.getElementById('chatOverlay').classList.remove('active');
+        document.getElementById('chatToggle').classList.remove('active');
+    }
+    
+    refreshIframe() {
+        const iframe = document.getElementById('chatIframe');
+        if (iframe) {
+            // Легкое обновление iframe
+            iframe.src = iframe.src;
+        }
+    }
+    
+    updateStatus(isOnline) {
+        const statusElement = document.getElementById('chatStatus');
+        if (statusElement) {
+            if (isOnline) {
+                statusElement.className = 'chat-status online';
+                statusElement.innerHTML = '<i class="fas fa-circle"></i> онлайн';
+            } else {
+                statusElement.className = 'chat-status offline';
+                statusElement.innerHTML = '<i class="fas fa-circle"></i> офлайн';
+            }
+        }
+    }
+    
+    handleResize() {
+        const chatContainer = document.getElementById('chatContainer');
+        const toggleBtn = document.getElementById('chatToggle');
+        
+        if (window.innerWidth <= 767) {
+            // Мобильный режим
+            if (chatContainer) {
+                chatContainer.style.width = 'calc(100vw - 30px)';
+                chatContainer.style.maxWidth = '400px';
+                chatContainer.style.left = '15px';
+                chatContainer.style.bottom = '140px';
+            }
+            if (toggleBtn) {
+                toggleBtn.style.left = '15px';
+                toggleBtn.style.bottom = '80px';
+            }
+        } else {
+            // Десктопный режим
+            if (chatContainer) {
+                chatContainer.style.width = '350px';
+                chatContainer.style.left = '20px';
+                chatContainer.style.bottom = '90px';
+            }
+            if (toggleBtn) {
+                toggleBtn.style.left = '20px';
+                toggleBtn.style.bottom = '20px';
+            }
+        }
+    }
+    
+    checkChatState() {
+        // Проверяем сохраненное состояние
+        const savedState = localStorage.getItem('chatWidgetState');
+        if (savedState === 'open') {
+            // Автоматически открываем чат при загрузке
+            setTimeout(() => this.open(), 1000);
+        }
+        
+        // Сохраняем состояние при изменении
+        const observer = new MutationObserver(() => {
+            localStorage.setItem('chatWidgetState', this.isOpen ? 'open' : 'closed');
+        });
+        
+        const chatContainer = document.getElementById('chatContainer');
+        if (chatContainer) {
+            observer.observe(chatContainer, { attributes: true, attributeFilter: ['class'] });
+        }
+    }
+}
+
+// Инициализация чата
+let chatWidget = null;
+
+function initChatWidget() {
+    console.log('🔄 Инициализация виджета чата...');
+    
+    try {
+        // Ждем загрузки FontAwesome
+        if (typeof FontAwesome === 'undefined') {
+            setTimeout(initChatWidget, 500);
+            return;
+        }
+        
+        chatWidget = new ChatWidget();
+        console.log('✅ Виджет чата готов к работе');
+        
+    } catch (error) {
+        console.error('❌ Ошибка инициализации чата:', error);
+    }
+}
+
+// Запускаем инициализацию чата после загрузки страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // Добавляем небольшую задержку для загрузки основных компонентов
+    setTimeout(initChatWidget, 2000);
+});
+
+// Также добавляем инициализацию в основной блок инициализации
+// Найдите функцию initializeApp() и добавьте там:
+// initChatWidget();
+
+
+
+
+
 		
     </script>
 </body>
 </html>
+
