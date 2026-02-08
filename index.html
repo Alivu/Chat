@@ -1597,6 +1597,168 @@
         font-size: 0.78rem !important;
     }
 }	
+
+
+
+
+.chat-curtain {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 400px;
+    height: 100vh;
+    background: white;
+    box-shadow: -5px 0 25px rgba(0,0,0,0.15);
+    z-index: 10001;
+    transition: right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #e0e0e0;
+}
+
+.chat-curtain.open {
+    right: 0;
+}
+
+.curtain-handle {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 3px solid #3498db;
+}
+
+.handle-indicator {
+    width: 20px;
+    height: 4px;
+    background: #3498db;
+    border-radius: 2px;
+    margin-right: 10px;
+}
+
+.handle-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    flex: 1;
+}
+
+.handle-title i {
+    color: #f1c40f;
+    font-size: 1.2rem;
+}
+
+.handle-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.handle-btn {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.handle-btn:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-1px);
+}
+
+.curtain-content {
+    flex: 1;
+    overflow: hidden;
+}
+
+.curtain-opener {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3498db, #2c3e50);
+    color: white;
+    border: none;
+    cursor: pointer;
+    z-index: 10000;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    transition: all 0.3s ease;
+    border: 3px solid rgba(255,255,255,0.3);
+}
+
+.curtain-opener:hover {
+    transform: scale(1.1) rotate(10deg);
+    background: linear-gradient(135deg, #2980b9, #2c3e50);
+}
+
+.curtain-opener.hidden {
+    display: none;
+}
+
+/* Анимации */
+@keyframes curtainSlideIn {
+    from { right: -400px; }
+    to { right: 0; }
+}
+
+@keyframes curtainSlideOut {
+    from { right: 0; }
+    to { right: -400px; }
+}
+
+/* Мобильная версия */
+@media (max-width: 767px) {
+    .chat-curtain {
+        width: 100%;
+        right: -100%;
+    }
+    
+    .chat-curtain.open {
+        right: 0;
+    }
+    
+    .curtain-opener {
+        bottom: 160px;
+        right: 15px;
+        width: 45px;
+        height: 45px;
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .curtain-opener {
+        bottom: 140px;
+        right: 15px;
+        width: 40px;
+        height: 40px;
+        font-size: 1.3rem;
+    }
+}
+
+
+
+			
+
+			
     </style>
 </head>
 <body>
@@ -1855,61 +2017,6 @@
     </div>
 
     <script>
-
-
-
-// ========== КОНТРОЛЛЕР ШТОРКИ ==========
-class ChatCurtain {
-    constructor() {
-        this.curtain = document.getElementById('chatCurtain');
-        this.handle = document.getElementById('curtainHandle');
-        this.openerBtn = document.getElementById('openChatCurtainBtn');
-        this.unreadBadge = document.getElementById('curtainUnreadBadge');
-        this.openerBadge = this.openerBtn?.querySelector('.opener-badge');
-        this.chatIframe = document.getElementById('chatIframe');
-        this.isOpen = false;
-        this.isMinimized = false;
-        this.isDragging = false;
-        this.startY = 0;
-        this.startTranslateY = 0;
-        this.currentTranslateY = 0;
-        this.threshold = 100; // Порог для открытия/закрытия
-        this.unreadCount = 0;
-        
-        this.init();
-    }
-    
-    init() {
-        console.log('🎪 Инициализация шторки с чатом...');
-        this.setupEventListeners();
-        
-        // При открытии шторки - перезагружаем iframe если нужно
-        this.originalOpen = this.open;
-        this.open = function() {
-            this.originalOpen();
-            
-            // Если iframe пустой, загружаем чат
-            if (this.chatIframe && !this.chatIframe.src) {
-                setTimeout(() => {
-                    this.chatIframe.src = 'https://alivu.github.io/Electric_Group/';
-                }, 300);
-            }
-        };
-        
-        console.log('✅ Шторка с чатом готова');
-    }
-    
-    addSwipeIndicator() {
-        const indicator = document.createElement('div');
-        indicator.className = 'swipe-indicator';
-        indicator.innerHTML = '↕️ Свайп вверх/вниз';
-        this.handle.appendChild(indicator);
-        
-        // Скрываем через 5 секунд
-        setTimeout(() => {
-            indicator.style.display = 'none';
-        }, 5000);
-    }
     
     setupEventListeners() {
         // Открытие по кнопке
@@ -6292,6 +6399,181 @@ document.addEventListener('DOMContentLoaded', function() {
         
     }, 1000);
 });
+
+class ChatCurtain {
+    constructor() {
+        this.curtain = document.getElementById('chatCurtain');
+        this.openBtn = document.getElementById('openChatCurtainBtn');
+        this.handle = document.getElementById('curtainHandle');
+        this.closeBtn = document.getElementById('closeChatBtn');
+        this.minimizeBtn = document.getElementById('minimizeChatBtn');
+        this.chatIframe = document.getElementById('chatIframe');
+        this.isOpen = false;
+        this.isMinimized = false;
+        
+        this.init();
+    }
+    
+    init() {
+        // Проверяем сохраненное состояние
+        const savedState = localStorage.getItem('chatCurtainState');
+        if (savedState === 'open') {
+            this.open();
+        } else if (savedState === 'minimized') {
+            this.minimize();
+        }
+        
+        // Назначаем обработчики событий
+        this.openBtn.addEventListener('click', () => this.toggle());
+        this.handle.addEventListener('click', () => this.toggle());
+        this.closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.close();
+        });
+        this.minimizeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleMinimize();
+        });
+        
+        // Закрытие при клике вне шторки
+        document.addEventListener('click', (e) => {
+            if (this.isOpen && !this.curtain.contains(e.target) && !this.openBtn.contains(e.target)) {
+                this.close();
+            }
+        });
+        
+        // Обработка сообщений от iframe
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'chatMessage') {
+                this.handleChatMessage(event.data);
+            }
+        });
+        
+        console.log('✅ Шторка чата инициализирована');
+    }
+    
+    toggle() {
+        if (this.isOpen) {
+            this.close();
+        } else {
+            this.open();
+        }
+    }
+    
+    open() {
+        this.curtain.classList.add('open');
+        this.openBtn.classList.add('hidden');
+        this.isOpen = true;
+        this.isMinimized = false;
+        localStorage.setItem('chatCurtainState', 'open');
+        
+        // Обновляем iframe при открытии
+        setTimeout(() => {
+            if (this.chatIframe.contentWindow) {
+                this.chatIframe.contentWindow.postMessage({ type: 'chatVisible' }, '*');
+            }
+        }, 300);
+        
+        // Показываем уведомление
+        showNotification('💬 Чат Electric Group открыт');
+    }
+    
+    close() {
+        this.curtain.classList.remove('open');
+        this.openBtn.classList.remove('hidden');
+        this.isOpen = false;
+        localStorage.setItem('chatCurtainState', 'closed');
+    }
+    
+    toggleMinimize() {
+        if (this.isMinimized) {
+            this.restore();
+        } else {
+            this.minimize();
+        }
+    }
+    
+    minimize() {
+        this.curtain.style.height = '60px';
+        this.chatIframe.style.display = 'none';
+        this.isMinimized = true;
+        localStorage.setItem('chatCurtainState', 'minimized');
+    }
+    
+    restore() {
+        this.curtain.style.height = '100vh';
+        this.chatIframe.style.display = 'block';
+        this.isMinimized = false;
+        localStorage.setItem('chatCurtainState', 'open');
+    }
+    
+    handleChatMessage(data) {
+        // Воспроизводим звук при новом сообщении
+        if (data.hasNewMessage) {
+            playNotificationSound();
+            
+            // Мигаем кнопкой, если чат свернут
+            if (!this.isOpen) {
+                this.flashOpenButton();
+            }
+        }
+    }
+    
+    flashOpenButton() {
+        let flashCount = 0;
+        const maxFlashes = 6;
+        
+        const flashInterval = setInterval(() => {
+            if (flashCount >= maxFlashes * 2) {
+                clearInterval(flashInterval);
+                this.openBtn.style.background = 'linear-gradient(135deg, #3498db, #2c3e50)';
+                return;
+            }
+            
+            if (flashCount % 2 === 0) {
+                this.openBtn.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+            } else {
+                this.openBtn.style.background = 'linear-gradient(135deg, #3498db, #2c3e50)';
+            }
+            
+            flashCount++;
+        }, 300);
+    }
+}
+
+// Инициализация шторки чата
+function initChatCurtain() {
+    setTimeout(() => {
+        try {
+            const chatCurtain = new ChatCurtain();
+            window.chatCurtain = chatCurtain;
+            console.log('✅ Шторка чата готова к работе');
+        } catch (error) {
+            console.error('❌ Ошибка инициализации шторки чата:', error);
+        }
+    }, 1000);
+}
+
+// Добавьте вызов в конец функции initializeApp()
+// В функции initializeApp добавьте в конец:
+async function initializeApp() {
+    console.log('Инициализация приложения');
+    
+    initializeEstimateData();
+    renderPriceList();
+    renderEstimateTable();
+    updateTotals();
+    updateEstimateCounter();
+    setupEventListeners();
+    setupDate();
+    await initializeIslamicFeatures();
+    initMagnifier(); // ← УЖЕ ЕСТЬ
+    initChatCurtain(); // ← ДОБАВЬТЕ ЭТУ СТРОКУ
+    showTab('price');
+    
+    console.log('Приложение инициализировано');
+}
+		
     </script>
 <!-- ========== ВЫЕЗЖАЮЩАЯ ШТОРКА ========== -->
 <div id="chatCurtain" class="chat-curtain">
@@ -8826,8 +9108,47 @@ function escapeHtml(text) {
     <i class="fas fa-comments"></i>
     <span class="chat-notification-badge">0</span>
 </button>
+
+
+
+<!-- Шторка с чатом -->
+<div id="chatCurtain" class="chat-curtain">
+    <div class="curtain-handle" id="curtainHandle">
+        <div class="handle-indicator"></div>
+        <div class="handle-title">
+            <i class="fas fa-comments"></i>
+            Чат Electric Group
+        </div>
+        <div class="handle-actions">
+            <button class="handle-btn" id="minimizeChatBtn" title="Свернуть">
+                <i class="fas fa-window-minimize"></i>
+            </button>
+            <button class="handle-btn" id="closeChatBtn" title="Закрыть">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="curtain-content">
+        <iframe 
+            src="https://alivu.github.io/Electric_Group/"
+            id="chatIframe"
+            style="width: 100%; height: 100%; border: none;"
+            title="Чат Electric Group"
+            allow="microphone; camera; autoplay; encrypted-media"
+        ></iframe>
+    </div>
+</div>
+
+<!-- Кнопка открытия шторки -->
+<button id="openChatCurtainBtn" class="curtain-opener">
+    <i class="fas fa-comment-dots"></i>
+</button>
+
+					
 </body>
 </html>
+
 
 
 
