@@ -2091,8 +2091,7 @@ function initChatSystem() {  // ✅ ИСПРАВЬТЕ: добавьте functio
         
         console.log('🎪 Шторка открыта');
     }
-    
-    close() {
+    function close() {
         if (!this.isOpen) return;
         
         this.isOpen = false;
@@ -2105,7 +2104,7 @@ function initChatSystem() {  // ✅ ИСПРАВЬТЕ: добавьте functio
         console.log('🎪 Шторка закрыта');
     }
     
-    toggle() {
+   toggle() {
         if (this.isOpen) {
             this.close();
         } else {
@@ -9205,6 +9204,7 @@ function escapeHtml(text) {
 </button>
 </body>
 </html>
+
 
 
 
