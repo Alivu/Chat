@@ -1616,6 +1616,52 @@
         font-size: 0.78rem !important;
     }
 }	
+
+
+
+
+/* ========== ИСПРАВЛЕНИЕ ПОЗИЦИОНИРОВАНИЯ КЛАВИАТУРЫ ========== */
+/* Фиксируем тело при открытии клавиатуры */
+body.keyboard-open {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Контейнер для прокрутки с клавиатурой */
+.scroll-container {
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Для полей ввода на мобильных */
+input, textarea, select {
+    font-size: 16px !important; /* Отключаем зум iOS */
+    touch-action: manipulation;
+}
+
+/* Исправление для iOS */
+@supports (-webkit-touch-callout: none) {
+    body {
+        /* iOS specific styles */
+        min-height: -webkit-fill-available;
+    }
+}
+
+/* Адаптивное позиционирование при фокусе */
+.search-input:focus,
+.number-input:focus,
+.form-control:focus {
+    scroll-margin-top: 150px; /* Отступ при скролле к элементу */
+}
+
+
+
+
+
+
     </style>
 </head>
 <body>
@@ -1990,18 +2036,25 @@
                 const screenWidth = window.innerWidth;
                 const screenHeight = window.innerHeight;
                 
-                if (isMobile) {
-                    // На мобильных - адаптивный размер
-                    const chatWidth = Math.min(screenWidth * 0.95, 500);
-                    const chatHeight = screenHeight * 0.85;
-                    
-                    chatWindow.style.width = chatWidth + 'px';
-                    chatWindow.style.height = chatHeight + 'px';
-                    chatWindow.style.maxHeight = '85vh';
-                    chatWindow.style.maxWidth = '95vw';
-                    
-                    // Позиционируем чуть выше, чтобы клавиатура не закрывала
-                    chatWindow.style.top = '45%';
+if (isMobile) {
+    // На мобильных - адаптивный размер с учетом клавиатуры
+    const chatWidth = Math.min(screenWidth * 0.98, 500);
+    const chatHeight = screenHeight * 0.75; // Уменьшили высоту для клавиатуры
+    
+    chatWindow.style.width = chatWidth + 'px';
+    chatWindow.style.height = chatHeight + 'px';
+    chatWindow.style.maxHeight = '75vh'; // Изменили с 85vh
+    chatWindow.style.maxWidth = '98vw';
+    
+    // Позиционируем выше для клавиатуры
+    chatWindow.style.top = '40%'; // Изменили с 45%
+    
+    // Для очень маленьких экранов
+    if (window.innerHeight < 600) {
+        chatWindow.style.top = '30%';
+        chatWindow.style.height = '70%';
+        chatWindow.style.maxHeight = '70vh';
+    }
                     
                 } else {
                     // На десктопе - фиксированный размер
@@ -5665,6 +5718,102 @@
         
         // ========== ГОТОВО! ==========
         console.log('🚀 Приложение ЭлектроСмета полностью загружено и готово к работе!');
+		
+		
+		// ========== ИСПРАВЛЕНИЕ ДЛЯ МОБИЛЬНОЙ КЛАВИАТУРЫ ==========
+
+function fixMobileKeyboard() {
+    if (window.innerWidth > 767) return; // Только для мобильных
+    
+    let isKeyboardOpen = false;
+    let originalHeight = window.innerHeight;
+    
+    // Определяем открытие/закрытие клавиатуры
+    window.addEventListener('resize', function() {
+        const newHeight = window.innerHeight;
+        const heightDiff = Math.abs(originalHeight - newHeight);
+        
+        // Если высота изменилась значительно - предположим, что открылась клавиатура
+        if (heightDiff > 100 && newHeight < originalHeight) {
+            if (!isKeyboardOpen) {
+                isKeyboardOpen = true;
+                document.body.classList.add('keyboard-open');
+                scrollToActiveInput();
+            }
+        } else {
+            if (isKeyboardOpen) {
+                isKeyboardOpen = false;
+                document.body.classList.remove('keyboard-open');
+            }
+            originalHeight = newHeight;
+        }
+    });
+    
+    // Прокрутка к активному полю ввода
+    function scrollToActiveInput() {
+        setTimeout(() => {
+            const activeElement = document.activeElement;
+            if (activeElement && 
+                (activeElement.tagName === 'INPUT' || 
+                 activeElement.tagName === 'TEXTAREA' || 
+                 activeElement.tagName === 'SELECT')) {
+                
+                // Прокручиваем к элементу с отступом
+                const elementRect = activeElement.getBoundingClientRect();
+                const absoluteElementTop = elementRect.top + window.pageYOffset;
+                const middle = absoluteElementTop - (window.innerHeight / 3);
+                
+                window.scrollTo({
+                    top: middle,
+                    behavior: 'smooth'
+                });
+                
+                // Для iOS дополнительная обработка
+                if (isIOS) {
+                    setTimeout(() => {
+                        activeElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                    }, 300);
+                }
+            }
+        }, 100);
+    }
+    
+    // Слушаем фокус на полях ввода
+    document.addEventListener('focusin', function(e) {
+        if (window.innerWidth <= 767 && 
+            (e.target.tagName === 'INPUT' || 
+             e.target.tagName === 'TEXTAREA' || 
+             e.target.tagName === 'SELECT')) {
+            
+            setTimeout(scrollToActiveInput, 50);
+        }
+    });
+    
+    // Скрываем клавиатуру при клике вне поля ввода
+    document.addEventListener('touchstart', function(e) {
+        if (!e.target.closest('input') && 
+            !e.target.closest('textarea') && 
+            !e.target.closest('select')) {
+            
+            // Снимаем фокус со всех полей ввода
+            if (document.activeElement && 
+                (document.activeElement.tagName === 'INPUT' || 
+                 document.activeElement.tagName === 'TEXTAREA')) {
+                document.activeElement.blur();
+            }
+        }
+    });
+}
+
+// Вызываем функцию при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    fixMobileKeyboard();
+});
+		
+		
     </script>
 </body>
 </html>
