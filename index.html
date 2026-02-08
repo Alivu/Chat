@@ -1657,7 +1657,43 @@ input, textarea, select {
     scroll-margin-top: 150px; /* Отступ при скролле к элементу */
 }
 
+/* Улучшаем плавность переходов */
+.chat-window {
+    transition: 
+        width 0.3s ease,
+        height 0.3s ease,
+        top 0.3s ease,
+        left 0.3s ease,
+        transform 0.3s ease !important;
+}
 
+/* Для мобильных с клавиатурой */
+@media (max-width: 767px) {
+    .chat-window[data-state*="keyboard-open"] {
+        border-bottom: 3px solid #3498db;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+    }
+    
+    /* Если нужно скрыть часть контента при клавиатуре */
+    .chat-iframe {
+        height: calc(100% - 40px) !important;
+    }
+}
+
+/* Индикатор состояния клавиатуры (для отладки) */
+.chat-window::after {
+    content: attr(data-state);
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    display: none; /* Включи для отладки: display: block; */
+}
 
 
 
@@ -1975,189 +2011,241 @@ input, textarea, select {
         // ========== ИНИЦИАЛИЗАЦИЯ ЧАТА ==========
         let chatIsOpen = false;
 
-        function initChat() {
-            const chatToggle = document.getElementById('chatToggle');
-            const chatWindow = document.getElementById('chatWindow');
-            const chatClose = document.getElementById('chatClose');
-            const chatOverlay = document.getElementById('chatOverlay');
-            const chatIframe = document.getElementById('chatIframe');
+// ========== ИСПРАВЛЕННЫЙ ЧАТ С ДИНАМИЧЕСКОЙ ПРИВЯЗКОЙ К КЛАВИАТУРЕ ==========
 
-            if (!chatToggle || !chatWindow) {
-                console.error('Элементы чата не найдены');
-                return;
-            }
+function initChat() {
+    const chatToggle = document.getElementById('chatToggle');
+    const chatWindow = document.getElementById('chatWindow');
+    const chatClose = document.getElementById('chatClose');
+    const chatOverlay = document.getElementById('chatOverlay');
+    const chatIframe = document.getElementById('chatIframe');
 
-            // Функция открытия/закрытия чата
-            function toggleChat() {
-                chatIsOpen = !chatIsOpen;
-                
-                if (chatIsOpen) {
-                    // Открываем чат
-                    chatWindow.classList.add('active');
-                    chatOverlay.classList.add('active');
-                    chatToggle.classList.add('active');
-                    chatToggle.innerHTML = '<i class="fas fa-times"></i>';
-                    
-                    // Обновляем размеры
-                    updateChatSize();
-                    
-                    // Обновляем iframe для предотвращения кэширования
-                    setTimeout(() => {
-                        if (chatIframe) {
-                            const currentSrc = chatIframe.src.split('?')[0];
-                            chatIframe.src = currentSrc + '?t=' + Date.now();
-                            
-                            // Фокусируем iframe для работы клавиатуры
-                            try {
-                                chatIframe.contentWindow.focus();
-                            } catch (e) {
-                                console.log('Не удалось сфокусировать iframe');
-                            }
-                        }
-                    }, 100);
-                    
-                    // Показываем уведомление
-                    showNotification('💬 Чат Electric_Group открыт');
-                    
-                } else {
-                    // Закрываем чат
-                    chatWindow.classList.remove('active');
-                    chatOverlay.classList.remove('active');
-                    chatToggle.classList.remove('active');
-                    chatToggle.innerHTML = '<i class="fas fa-comments"></i>';
-                }
-            }
+    if (!chatToggle || !chatWindow) return;
 
-            // Функция адаптации размера чата
-            function updateChatSize() {
-                if (!chatIsOpen) return;
+    // Переменные для управления
+    let chatIsOpen = false;
+    let isKeyboardVisible = false;
+    let keyboardHeight = 0;
+    let lastViewportHeight = window.innerHeight;
+
+    // Основная функция обновления размера с умной привязкой к клавиатуре
+    function updateChatSize() {
+        if (!chatIsOpen) return;
+        
+        const isMobile = window.innerWidth <= 767;
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const visualViewport = window.visualViewport;
+        
+        if (isMobile && visualViewport) {
+            // Определяем, открыта ли клавиатура
+            const newKeyboardHeight = Math.max(0, screenHeight - visualViewport.height);
+            const keyboardChanged = Math.abs(newKeyboardHeight - keyboardHeight) > 10;
+            
+            if (newKeyboardHeight > 50) {
+                // КЛАВИАТУРА ОТКРЫТА - прилипаем к ней!
+                isKeyboardVisible = true;
+                keyboardHeight = newKeyboardHeight;
                 
-                const isMobile = window.innerWidth <= 767;
-                const screenWidth = window.innerWidth;
-                const screenHeight = window.innerHeight;
+                // Вычисляем видимую область над клавиатурой
+                const availableHeight = visualViewport.height;
                 
-if (isMobile) {
-    // На мобильных - адаптивный размер с учетом клавиатуры
-    const chatWidth = Math.min(screenWidth * 0.98, 500);
-    const chatHeight = screenHeight * 0.98; // Уменьшили высоту для клавиатуры
-    
-    chatWindow.style.width = chatWidth + 'px';
-    chatWindow.style.height = chatHeight + 'px';
-    chatWindow.style.maxHeight = '98vh'; // Изменили с 85vh
-    chatWindow.style.maxWidth = '98vw';
-    
-    // Позиционируем выше для клавиатуры
-    chatWindow.style.top = '10%'; // Изменили с 45%
-    
-    // Для очень маленьких экранов
-    if (window.innerHeight < 600) {
-        chatWindow.style.top = '30%';
-        chatWindow.style.height = '70%';
-        chatWindow.style.maxHeight = '70vh';
-    }
-                    
-                } else {
-                    // На десктопе - фиксированный размер
-                    chatWindow.style.width = '500px';
-                    chatWindow.style.height = '700px';
-                    chatWindow.style.maxWidth = '600px';
-                    chatWindow.style.maxHeight = '800px';
-                    chatWindow.style.top = '50%';
-                }
+                // Оставляем регулируемый отступ (можно менять)
+                const paddingFromKeyboard = 5; // ← РЕГУЛИРУЙ ЭТО! (пиксели отступа от клавиатуры)
                 
-                // Центрируем
+                // Высота окна чата = доступная высота - отступ от клавиатуры
+                const chatHeight = availableHeight - paddingFromKeyboard;
+                
+                // Позиция окна: прижимаем к верху клавиатуры
+                const chatTop = visualViewport.offsetTop + (availableHeight - chatHeight);
+                
+                // Устанавливаем размер и позицию
+                chatWindow.style.width = `${Math.min(screenWidth * 0.98, 500)}px`;
+                chatWindow.style.height = `${chatHeight}px`;
+                chatWindow.style.maxHeight = `${chatHeight}px`;
+                chatWindow.style.top = `${chatTop}px`;
+                chatWindow.style.transform = 'translate(-50%, 0)';
+                chatWindow.style.left = '50%';
+                chatWindow.style.transition = 'top 0.3s ease, height 0.3s ease';
+                
+                // Для отладки (можно удалить)
+                chatWindow.dataset.state = `keyboard-open: ${keyboardHeight}px, padding: ${paddingFromKeyboard}px`;
+                
+            } else {
+                // КЛАВИАТУРЫ НЕТ - центрируем по экрану
+                isKeyboardVisible = false;
+                keyboardHeight = 0;
+                
+                const chatWidth = Math.min(screenWidth * 0.95, 500);
+                const chatHeight = screenHeight * 0.85;
+                
+                chatWindow.style.width = `${chatWidth}px`;
+                chatWindow.style.height = `${chatHeight}px`;
+                chatWindow.style.maxHeight = '85vh';
+                chatWindow.style.maxWidth = '95vw';
+                chatWindow.style.top = '50%';
                 chatWindow.style.left = '50%';
                 chatWindow.style.transform = 'translate(-50%, -50%)';
-            }
-
-            // Назначаем обработчики
-            chatToggle.addEventListener('click', toggleChat);
-            chatClose.addEventListener('click', toggleChat);
-            chatOverlay.addEventListener('click', toggleChat);
-
-            // Закрытие по Escape
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && chatIsOpen) {
-                    toggleChat();
-                }
-            });
-
-            // Обработка изменения размера окна
-            window.addEventListener('resize', () => {
-                if (chatIsOpen) {
-                    updateChatSize();
-                    
-                    // При появлении клавиатуры на мобильных
-                    if (window.innerWidth <= 767) {
-                        setTimeout(updateChatSize, 300);
-                    }
-                }
-            });
-
-            // Обработка изменения ориентации
-            window.addEventListener('orientationchange', () => {
-                setTimeout(() => {
-                    if (chatIsOpen) {
-                        updateChatSize();
-                        
-                        // Перезагружаем iframe для корректного отображения
-                        if (chatIframe) {
-                            const currentSrc = chatIframe.src.split('?')[0];
-                            chatIframe.src = currentSrc + '?t=' + Date.now();
-                        }
-                    }
-                }, 100);
-            });
-
-            // Слушаем сообщения из iframe
-            window.addEventListener('message', (event) => {
-                // Автоматическая подстройка высоты от чата
-                if (event.data && event.data.type === 'chatHeight') {
-                    const iframe = document.getElementById('chatIframe');
-                    if (iframe && event.data.height && chatIsOpen) {
-                        const newHeight = Math.min(event.data.height, window.innerHeight * 0.8);
-                        iframe.style.height = newHeight + 'px';
-                        chatWindow.style.height = (newHeight + 20) + 'px';
-                    }
-                }
+                chatWindow.style.transition = 'top 0.3s ease, height 0.3s ease';
                 
-                // Пинг от чата (для проверки онлайн статуса)
-                if (event.data && event.data.type === 'pong') {
-                    console.log('✅ Чат онлайн');
-                    updateChatStatus(true);
-                }
-            });
-
-            // Периодическая проверка онлайн статуса
-            function checkOnlineStatus() {
-                const iframe = document.getElementById('chatIframe');
-                if (iframe && iframe.contentWindow) {
-                    try {
-                        iframe.contentWindow.postMessage({ type: 'ping' }, '*');
-                    } catch (e) {}
-                }
+                chatWindow.dataset.state = 'keyboard-closed';
             }
-
-            // Обновление статуса в кнопке
-            function updateChatStatus(isOnline) {
-                const chatToggle = document.getElementById('chatToggle');
-                if (chatToggle) {
-                    if (isOnline) {
-                        chatToggle.title = "Чат Electric_Group • онлайн";
-                    } else {
-                        chatToggle.title = "Чат Electric_Group • офлайн";
-                    }
-                }
-            }
-
-            // Запускаем проверку статуса
-            setInterval(checkOnlineStatus, 30000);
             
-            // Первая проверка
-            setTimeout(checkOnlineStatus, 2000);
-
-            console.log('✅ Чат инициализирован');
+        } else {
+            // ДЕСКТОП - обычное позиционирование
+            chatWindow.style.width = '500px';
+            chatWindow.style.height = '700px';
+            chatWindow.style.maxWidth = '600px';
+            chatWindow.style.maxHeight = '800px';
+            chatWindow.style.top = '50%';
+            chatWindow.style.left = '50%';
+            chatWindow.style.transform = 'translate(-50%, -50%)';
         }
+    }
+
+    // Слушатель изменения виртуального вьюпорта (для клавиатуры)
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            if (chatIsOpen) {
+                updateChatSize();
+            }
+        });
+        
+        window.visualViewport.addEventListener('scroll', () => {
+            if (chatIsOpen && isKeyboardVisible) {
+                // Поддерживаем позицию при скролле
+                updateChatSize();
+            }
+        });
+    }
+
+    // Слушатель изменения размера окна
+    window.addEventListener('resize', () => {
+        if (chatIsOpen) {
+            updateChatSize();
+        }
+    });
+
+    // Отслеживаем фокус в iframe (чтобы знать, когда открывается клавиатура)
+    function setupIframeFocusTracking() {
+        try {
+            chatIframe.contentWindow.addEventListener('focusin', () => {
+                // Даем время клавиатуре появиться
+                setTimeout(updateChatSize, 100);
+            });
+            
+            chatIframe.contentWindow.addEventListener('focusout', () => {
+                setTimeout(updateChatSize, 300);
+            });
+        } catch (e) {
+            // Если не получается получить доступ к contentWindow
+            console.log('Не удалось отслеживать фокус в iframe');
+        }
+    }
+
+    // Функция переключения чата
+    function toggleChat() {
+        chatIsOpen = !chatIsOpen;
+        
+        if (chatIsOpen) {
+            // Открываем чат
+            chatWindow.classList.add('active');
+            chatOverlay.classList.add('active');
+            chatToggle.classList.add('active');
+            chatToggle.innerHTML = '<i class="fas fa-times"></i>';
+            
+            // Обновляем размер
+            updateChatSize();
+            
+            // Настраиваем отслеживание фокуса в iframe
+            setTimeout(() => {
+                if (chatIframe) {
+                    const currentSrc = chatIframe.src.split('?')[0];
+                    chatIframe.src = currentSrc + '?t=' + Date.now();
+                    
+                    // Пытаемся настроить отслеживание фокуса
+                    setTimeout(setupIframeFocusTracking, 1000);
+                }
+            }, 100);
+            
+            showNotification('💬 Чат открыт');
+            
+        } else {
+            // Закрываем чат
+            chatWindow.classList.remove('active');
+            chatOverlay.classList.remove('active');
+            chatToggle.classList.remove('active');
+            chatToggle.innerHTML = '<i class="fas fa-comments"></i>';
+        }
+    }
+
+    // Назначаем обработчики
+    chatToggle.addEventListener('click', toggleChat);
+    chatClose.addEventListener('click', toggleChat);
+    chatOverlay.addEventListener('click', toggleChat);
+
+    // Закрытие по Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && chatIsOpen) {
+            toggleChat();
+        }
+    });
+
+    // Добавим кнопку регулировки отступа (опционально)
+    function addPaddingControl() {
+        if (window.innerWidth > 767) return; // Только для мобильных
+        
+        const controlBtn = document.createElement('button');
+        controlBtn.innerHTML = '📏';
+        controlBtn.title = 'Регулировать отступ от клавиатуры';
+        controlBtn.style.cssText = `
+            position: absolute;
+            bottom: 50px;
+            right: 15px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 18px;
+            display: none;
+        `;
+        
+        let currentPadding = 5; // начальный отступ
+        
+        controlBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const newPadding = prompt('Отступ от клавиатуры (px):', currentPadding);
+            if (newPadding !== null && !isNaN(newPadding)) {
+                currentPadding = parseInt(newPadding);
+                localStorage.setItem('chat_keyboard_padding', currentPadding);
+                showNotification(`Отступ установлен: ${currentPadding}px`);
+                updateChatSize();
+            }
+        });
+        
+        chatWindow.appendChild(controlBtn);
+        
+        // Показываем кнопку только когда клавиатура открыта
+        setInterval(() => {
+            controlBtn.style.display = isKeyboardVisible && chatIsOpen ? 'flex' : 'none';
+        }, 1000);
+        
+        // Загружаем сохраненный отступ
+        const savedPadding = localStorage.getItem('chat_keyboard_padding');
+        if (savedPadding) {
+            currentPadding = parseInt(savedPadding);
+        }
+    }
+
+    // Инициализируем управление отступами
+    setTimeout(addPaddingControl, 1000);
+
+    console.log('✅ Чат инициализирован с динамической привязкой к клавиатуре');
+}
 
         // ========== ОСТАЛЬНОЙ КОД (ВСЕ ВАШИ ФУНКЦИИ) ==========
         // Проверяем iOS
@@ -5817,6 +5905,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </script>
 </body>
 </html>
+
 
 
 
